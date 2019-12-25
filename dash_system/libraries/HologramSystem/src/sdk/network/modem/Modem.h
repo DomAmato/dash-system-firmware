@@ -66,6 +66,12 @@ public:
     const char* lastResponse();
     uint32_t numResponses();
     void checkURC();
+    bool checkAvailable() {
+        return modemavailable();
+    }
+    modem_result checkResult() {
+        return processResponse(1000, "");
+    }
     void rawWrite(char c);
     void rawWrite(const char* content);
     void dataWrite(const uint8_t* content, uint32_t length);

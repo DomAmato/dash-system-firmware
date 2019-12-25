@@ -34,61 +34,68 @@
 
 #define UBLOX_MODEL_SIZE 16
 
-typedef struct {
+typedef struct
+{
     uint8_t year;
     uint8_t month;
     uint8_t day;
     uint8_t hour;
     uint8_t minute;
     uint8_t second;
-    int8_t  tzquarter;
-}timestamp_tz;
+    int8_t tzquarter;
+} timestamp_tz;
 
-typedef struct {
+typedef struct
+{
     char sender[21];
     timestamp_tz timestamp;
     char message[161];
-}sms_event;
+} sms_event;
 
-typedef struct {
+typedef struct
+{
     timestamp_tz timestamp;
     char lat[16];
     char lon[16];
     int altitude;
     int uncertainty;
-}location_event;
+} location_event;
 
-typedef struct {
+typedef struct
+{
     char host[16];
     int port;
-}ip_endpoint;
+} ip_endpoint;
 
-typedef struct {
+typedef struct
+{
     int socket;
     ip_endpoint remote;
     ip_endpoint local;
     int listener;
-}socket_accept_event;
+} socket_accept_event;
 
 typedef union {
     int sms_index;
     socket_accept_event accept;
     location_event location;
-}ublox_event_content;
+} ublox_event_content;
 
-typedef enum {
-    UBLOX_EVENT_NONE = 0,               //NULL
-    UBLOX_EVENT_SMS_RECEIVED = 1,       //sms_event
-    UBLOX_EVENT_FORCED_DISCONNECT = 2,  //NULL
-    UBLOX_EVENT_NETWORK_TIME_UPDATE = 3,//NULL
-    UBLOX_EVENT_SOCKET_ACCEPT = 4,      //connection_event
-    UBLOX_EVENT_LOCATION_UPDATE = 5,    //location_event
-    UBLOX_EVENT_NETWORK_REGISTERED = 6, //NULL
+typedef enum
+{
+    UBLOX_EVENT_NONE = 0,                 //NULL
+    UBLOX_EVENT_SMS_RECEIVED = 1,         //sms_event
+    UBLOX_EVENT_FORCED_DISCONNECT = 2,    //NULL
+    UBLOX_EVENT_NETWORK_TIME_UPDATE = 3,  //NULL
+    UBLOX_EVENT_SOCKET_ACCEPT = 4,        //connection_event
+    UBLOX_EVENT_LOCATION_UPDATE = 5,      //location_event
+    UBLOX_EVENT_NETWORK_REGISTERED = 6,   //NULL
     UBLOX_EVENT_NETWORK_UNREGISTERED = 7, //NULL
-    UBLOX_EVENT_CONNECTED = 8,          //NULL
-}ublox_event_id;
+    UBLOX_EVENT_CONNECTED = 8,            //NULL
+} ublox_event_id;
 
-typedef enum {
+typedef enum
+{
     UBLOX_CONN_REGISTERED = 0,
     UBLOX_CONN_CONNECTED = 1,
     UBLOX_CONN_ERR_SIM = 3,
@@ -96,9 +103,10 @@ typedef enum {
     UBLOX_CONN_ERR_SIGNAL = 5,
     UBLOX_CONN_ERR_CONNECT = 12,
     UBLOX_CONN_ERR_OFF = 15, //powered off or never initialized
-}ublox_connection;
+} ublox_connection;
 
-typedef enum {
+typedef enum
+{
     UBLOX_STATE_INIT,
     UBLOX_STATE_OFF,
     UBLOX_STATE_CHECK_SIM,
@@ -108,18 +116,20 @@ typedef enum {
     UBLOX_STATE_REGISTERED,
     UBLOX_STATE_CONNECTING,
     UBLOX_STATE_CONNECTED,
-}ublox_state;
+} ublox_state;
 
-typedef enum {
+typedef enum
+{
     SOCKET_TYPE_NONE,
     SOCKET_TYPE_LISTEN,
     SOCKET_TYPE_ACTIVE,
-}socket_type;
+} socket_type;
 
-class UBlox : public Network, public URCReceiver {
+class UBlox : public Network, public URCReceiver
+{
 public:
     virtual void init(NetworkEventHandler &handler, Modem &m);
-    virtual void onURC(const char* urc);
+    virtual void onURC(const char *urc);
 
     int getConnectionStatus();
     bool isInitialized();
@@ -129,9 +139,9 @@ public:
     int getSignalStrength();
 
     virtual void powerUp();
-    virtual void powerDown(bool soft=true);
+    virtual void powerDown(bool soft = true);
 
-    bool getLocation(int mode, int sensor, int response_type, int timeout, int accuracy, int num_hypothesis=1);
+    bool getLocation(int mode, int sensor, int response_type, int timeout, int accuracy, int num_hypothesis = 1);
 
     bool deleteSMS(int location);
     bool readSMS(int location, sms_event &smsread);
@@ -140,56 +150,61 @@ public:
 
     void pollEvents();
 
-    uint32_t timeoutCount() {return modem->timeoutCount();}
+    uint32_t timeoutCount() { return modem->timeoutCount(); }
 
-    const char* getModel();
+    const char *getModel();
 
     int open(int port);
-    int open(const char* port);
-    int open(const char* host, int port);
-    int open(const char* host, const char* port);
-    bool write(int socket, const uint8_t* content, int length);
+    int open(const char *port);
+    int open(const char *host, int port);
+    int open(const char *host, const char *port);
+    bool write(int socket, const uint8_t *content, int length);
     void flush(int socket);
-    int read(int socket, int numbytes, uint8_t *buffer) {return read(socket, numbytes, buffer, 10000);}
-    int read(int socket, int numbytes, uint8_t *buffer, uint32_t timeout) {return read(socket, numbytes, buffer, timeout, false);}
+    int read(int socket, int numbytes, uint8_t *buffer) { return read(socket, numbytes, buffer, 10000); }
+    int read(int socket, int numbytes, uint8_t *buffer, uint32_t timeout) { return read(socket, numbytes, buffer, timeout, false); }
     int read(int socket, int numbytes, uint8_t *buffer, uint32_t timeout, bool hex);
     bool close(int socket);
 
     int getIMSI(char *id);
     int getICCID(char *id);
     bool isNetworkTimeAvailable();
-    bool getNetworkTime(timestamp_tz& ts);
-    bool httpGet(const char* url, int port, const char* response, const char* user, const char* pass);
+    bool getNetworkTime(timestamp_tz &ts);
+    bool httpGet(const char *url, int port, const char *response, const char *user, const char *pass);
 
     //UBlox File System
     int filesize(const char *filename);
-    int readFile(const char* filename, int offset, void* buffer, int size);
-    int readFileLine(const char* filename, int offset, char* buffer, int size);
+    int readFile(const char *filename, int offset, void *buffer, int size);
+    int prepareWriteFile(const char *filename, int size);
+    void writeFileData(const char byte);
+    bool modemHasData();
+    bool hasOKResult();
+    int readFileLine(const char *filename, int offset, char *buffer, int size);
 
-    const char* query(const char* cmd, uint32_t timeout=500, uint32_t retries=0);
-    const char* command(const char* cmd, uint32_t timeout=500, uint32_t retries=0);
-    const char* set(const char* cmd, const char* value, uint32_t timeout=500, uint32_t retries=0);
+    const char *query(const char *cmd, uint32_t timeout = 500, uint32_t retries = 0);
+    const char *command(const char *cmd, uint32_t timeout = 500, uint32_t retries = 0);
+    const char *set(const char *cmd, const char *value, uint32_t timeout = 500, uint32_t retries = 0);
 
     static uint8_t invertDecimal(const char *dec);
     static uint8_t invertHex(const char *hex);
-    static uint8_t convertField(const char* field);
+    static uint8_t convertField(const char *field);
 
 protected:
-    typedef struct {
+    typedef struct
+    {
         int id;
         int bytes_available;
         socket_type type;
-    }ublox_socket;
+    } ublox_socket;
 
-    virtual void wait(uint32_t ms)=0;
-    virtual void holdReset()=0;
-    virtual void releaseReset()=0;
-    virtual void toggleReset()=0;
-    virtual uint32_t modemResetTime() { return 4;}
-    virtual void debug(const char* msg){}
-    virtual void debugln(const char* msg){}
-    virtual void debug(int i){}
-    virtual void debugln(int i){}
+    virtual void wait(uint32_t ms) = 0;
+    virtual void holdReset() = 0;
+    virtual void releaseReset() = 0;
+    virtual void toggleReset() = 0;
+    virtual uint32_t modemResetTime() { return 4; }
+    virtual void debug(const char *msg) {}
+    virtual void debugln(const char *msg) {}
+    virtual void debug(int i) {}
+    virtual void debugln(int i) {}
 
     void state_init();
     void state_check_sim();
@@ -198,8 +213,8 @@ protected:
 
     bool checkRegistered();
     void setRegistered(bool reg);
-    bool initModem(int delay_seconds=1);
-    bool startswith(const char* a, const char* b);
+    bool initModem(int delay_seconds = 1);
+    bool startswith(const char *a, const char *b);
 
     void loadModel();
 
@@ -211,12 +226,12 @@ protected:
     int _available(int socketnum);
     bool _close(int socketnum);
 
-    void rev_octet(char*& dst, const char* src);
+    void rev_octet(char *&dst, const char *src);
     char gsm7toascii(char c, bool esc);
-    void convert7to8bit(char* dst, const char* src, int num_chars);
-    bool parse_sms_pdu(const char* fullpdu, sms_event &parsed_sms);
+    void convert7to8bit(char *dst, const char *src, int num_chars);
+    bool parse_sms_pdu(const char *fullpdu, sms_event &parsed_sms);
 
-    bool uhttp(int profile, int opcode, const char* value);
+    bool uhttp(int profile, int opcode, const char *value);
     bool uhttp(int profile, int opcode, int value);
 
     Modem *modem;
