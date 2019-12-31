@@ -109,7 +109,11 @@ bool ArduinoCloud::downloadOTA(const char* url, const char* destination) {
     strcat(user, getID());
     auth->generatePassword(getID(), getKey(), getSeconds(), pass);
 
-    return ublox->httpGet(url, 80, destination, user, pass);
+    ublox->uhttp(1, 2, user);
+    ublox->uhttp(1, 3, pass);
+    ublox->uhttp(1, 4, 1);
+    ublox->uhttp(1, 5, 80);
+    return ublox->httpGet(1, url, destination);
 }
 
 int ArduinoCloud::findBlankLine(const char* filename, int offset, char* buffer, int size) {
@@ -173,7 +177,9 @@ bool ArduinoCloud::checkOTA(int index, sms_event &ota_sms) {
         ublox->deleteSMS(index);
         if(strncmp(payload, "PF:", 3) == 0) { //OTA message
             System.userInReset(true);
-            const char* url = payload+3;
+
+            char url[512];
+            sprintf(url, "\"%s\"", payload+3);
             if(downloadOTA(url, "ota")) {
                 if(programOTA("ota")) {
 

@@ -717,9 +717,9 @@ void UBlox::onURC(const char *urc)
     else if (startswith(urc, "+UUHTTPCR: "))
     {
         int flag;
-        if (sscanf(urc, "+UUHTTPCR: 0,1,%d", &flag) == 1)
+        if (sscanf(urc, "+UUHTTPCR: 0,%*d,%d", &flag) == 1)
         {
-            httpGetFlag = flag;
+            httpResponeFlag = flag;
         }
     }
     else if (startswith(urc, "+CTZV: "))
@@ -1149,47 +1149,28 @@ bool UBlox::uhttp(int profile, int opcode, int value)
     return (modem->completeSet(500, 10) == MODEM_OK);
 }
 
-bool UBlox::httpGet(const char *url, int port, const char *response,
-                    const char *user, const char *pass)
+bool UBlox::httpGet(int profile, const char *url, const char * response)
 {
     if (!isConnected())
         return false;
-    //Server Name
-    char *endofserver = strchr(url, '/');
-    if (endofserver == NULL)
-        return false;
-    modem->startSet("+UHTTP");
-    modem->appendSet("0,1,\"");
-    modem->appendSet((uint8_t *)url, endofserver - url);
-    modem->appendSet('"');
-    if (modem->completeSet(500, 10) != MODEM_OK)
-        return false;
-
-    if (!uhttp(0, 2, user))
-        return false;
-    if (!uhttp(0, 3, pass))
-        return false;
-    if (!uhttp(0, 4, 1))
-        return false;
-    if (!uhttp(0, 5, port))
-        return false;
-
-    httpGetFlag = -1;
+    // When parsing the input quotations are passed in as part of the string
+    httpResponeFlag = -1;
     modem->startSet("+UHTTPC");
-    modem->appendSet("0,1,\"");
-    modem->appendSet(endofserver);
-    modem->appendSet("\",\"");
+    modem->appendSet(profile);
+    modem->appendSet(",1,");
+    modem->appendSet(url);
+    modem->appendSet(",\"");
     modem->appendSet(response);
-    modem->appendSet('"');
+    modem->appendSet("\"");
     if (modem->completeSet(5000) != MODEM_OK)
         return false;
 
     uint32_t startMillis = modem->msTick();
-    while ((httpGetFlag == -1) && (modem->msTick() - startMillis < 60000))
+    while ((httpResponeFlag == -1) && (modem->msTick() - startMillis < 60000))
     {
         modem->checkURC();
     }
-    return httpGetFlag == 1;
+    return httpResponeFlag == 1;
 }
 
 int UBlox::filesize(const char *filename)
@@ -1343,12 +1324,12 @@ const char *UBlox::set(const char *cmd, const char *value, uint32_t timeout, uin
 
 int UBlox::prepareWriteFile(const char *filename, int size)
 {
+    // When parsing the Serial input the quotation marks are already included
     modem->startSet("+UDWNFILE");
-    modem->appendSet('"');
     modem->appendSet(filename);
-    modem->appendSet("\",");
+    modem->appendSet(",");
     modem->appendSet(size);
-    return modem->completeSet('>');
+    return modem->intermediateSet('>');
 }
 
 void UBlox::writeFileData(const char byte)
@@ -1364,4 +1345,38 @@ bool UBlox::modemHasData()
 bool UBlox::hasOKResult()
 {
     return modem->checkResult() == MODEM_OK;
+}
+
+bool UBlox::httpPost(int profile, const char *url, const char * response, const char * request, int content_type, const char *custom_content)
+{
+    if (!isConnected())
+        return false;
+
+    httpResponeFlag = -1;
+    // When parsing the input quotations are passed in as part of the string
+    modem->startSet("+UHTTPC");
+    modem->appendSet(profile);
+    modem->appendSet(",4,");
+    modem->appendSet(url);
+    modem->appendSet(",");
+    modem->appendSet(response);
+    modem->appendSet(",");
+    modem->appendSet(request);
+    modem->appendSet(",");
+    modem->appendSet(content_type);
+    if (content_type == 6)
+    {
+        modem->appendSet(",\"");
+        modem->appendSet(custom_content);
+        modem->appendSet("\"");
+    }
+    if (modem->completeSet(5000) != MODEM_OK)
+        return false;
+
+    uint32_t startMillis = modem->msTick();
+    while ((httpResponeFlag == -1) && (modem->msTick() - startMillis < 60000))
+    {
+        modem->checkURC();
+    }
+    return httpResponeFlag == 1;
 }
