@@ -440,72 +440,9 @@ void processSet(const char *cmd, const char *set)
       ERROR();
     }
   }
-  else if (strcmp(cmd, "+UHTTP") == 0)
-  {
-    int profile = 0;
-    char val[128];
-    int opcode = 0;
-    if (sscanf(set, "%d,%d,%s", &profile, &opcode, val) == 3)
-    {
-      if (ublox.uhttp(profile, opcode, val))
-      {
-        OK();
-        return;
-      }
-    }
-    ERROR();
-  }
-  else if (strcmp(cmd, "+UHTTPC") == 0)
-  {
-    int profile = 0;
-    char val[512];
-    int opcode = 0;
-    if (sscanf(set, "%d,%d,%s", &profile, &opcode, val) == 3)
-    {
-      if (opcode == 1)
-      {
-        uint8_t index = 0;
-        char *vals[2];
-        char str[512];
-        strcpy(str, val);
-        char *ptr = strtok(str, ",");
-        vals[index++] = ptr;
-        while (ptr != NULL && index < 2)
-        {
-          ptr = strtok(NULL, ",");
-          vals[index++] = ptr;
-        }
-        if (ublox.httpGet(profile, vals[0], vals[1]))
-        {
-          OK();
-          return;
-        }
-      }
-      else if (opcode == 4)
-      {
-        uint8_t index = 0;
-        char *vals[5];
-        char str[512];
-        strcpy(str, val);
-        char *ptr = strtok(str, ",");
-        vals[index++] = ptr;
-        while (ptr != NULL && index < 5)
-        {
-          ptr = strtok(NULL, ",");
-          vals[index++] = ptr;
-        }
-        if (ublox.httpPost(profile, vals[0], vals[1], vals[2], atoi(vals[3]), vals[4]))
-        {
-          OK();
-          return;
-        }
-      }
-    }
-    ERROR();
-  }
   else if (strcmp(cmd, "+UDWNFILE") == 0)
   {
-    //AT+HMWRITE="<filename>"",<len>\r\n
+    //AT+UDWNFILE="<filename>"",<len>\r\n
     //>
     //<data>
     uint8_t index = 0;

@@ -111,8 +111,8 @@ bool ArduinoCloud::downloadOTA(const char* url, const char* destination) {
 
     ublox->uhttp(1, 2, user);
     ublox->uhttp(1, 3, pass);
-    ublox->uhttp(1, 4, 1);
-    ublox->uhttp(1, 5, 80);
+    ublox->uhttp(1, 4, "1");
+    ublox->uhttp(1, 5, "80");
     return ublox->httpGet(1, url, destination);
 }
 

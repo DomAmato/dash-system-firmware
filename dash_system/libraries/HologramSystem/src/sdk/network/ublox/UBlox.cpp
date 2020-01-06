@@ -1130,22 +1130,10 @@ bool UBlox::uhttp(int profile, int opcode, const char *value)
     modem->appendSet(profile);
     modem->appendSet(',');
     modem->appendSet(opcode);
-    modem->appendSet(",\"");
-    modem->appendSet(value);
-    modem->appendSet('"');
-    return (modem->completeSet(500, 10) == MODEM_OK);
-}
-
-bool UBlox::uhttp(int profile, int opcode, int value)
-{
-    if (!isReady())
-        return false;
-    modem->startSet("+UHTTP");
-    modem->appendSet(profile);
-    modem->appendSet(',');
-    modem->appendSet(opcode);
-    modem->appendSet(",");
-    modem->appendSet(value);
+    if(value != NULL && strcmp(value, "") != 0){
+        modem->appendSet(",");
+        modem->appendSet(value);
+    }
     return (modem->completeSet(500, 10) == MODEM_OK);
 }
 
@@ -1366,9 +1354,8 @@ bool UBlox::httpPost(int profile, const char *url, const char * response, const 
     modem->appendSet(content_type);
     if (content_type == 6)
     {
-        modem->appendSet(",\"");
+        modem->appendSet(",");
         modem->appendSet(custom_content);
-        modem->appendSet("\"");
     }
     if (modem->completeSet(5000) != MODEM_OK)
         return false;
