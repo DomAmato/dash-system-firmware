@@ -1139,30 +1139,6 @@ bool UBlox::uhttp(int profile, int opcode, const char *value)
     return (modem->completeSet(500, 10) == MODEM_OK);
 }
 
-bool UBlox::httpGet(int profile, const char *url, const char *response)
-{
-    if (!isConnected())
-        return false;
-    // When parsing the input quotations are passed in as part of the string
-    httpResponeFlag = -1;
-    modem->startSet("+UHTTPC");
-    modem->appendSet(profile);
-    modem->appendSet(",1,");
-    modem->appendSet(url);
-    modem->appendSet(",\"");
-    modem->appendSet(response);
-    modem->appendSet("\"");
-    if (modem->completeSet(5000) != MODEM_OK)
-        return false;
-
-    uint32_t startMillis = modem->msTick();
-    while ((httpResponeFlag == -1) && (modem->msTick() - startMillis < 60000))
-    {
-        modem->checkURC();
-    }
-    return httpResponeFlag == 1;
-}
-
 int UBlox::filesize(const char *filename)
 {
     if (!isReady())
@@ -1335,39 +1311,6 @@ bool UBlox::modemHasData()
 bool UBlox::hasOKResult()
 {
     return modem->checkResult() == MODEM_OK;
-}
-
-bool UBlox::httpPost(int profile, const char *url, const char *response, const char *request, int content_type, const char *custom_content)
-{
-    if (!isConnected())
-        return false;
-
-    httpResponeFlag = -1;
-    // When parsing the input quotations are passed in as part of the string
-    modem->startSet("+UHTTPC");
-    modem->appendSet(profile);
-    modem->appendSet(",4,");
-    modem->appendSet(url);
-    modem->appendSet(",");
-    modem->appendSet(response);
-    modem->appendSet(",");
-    modem->appendSet(request);
-    modem->appendSet(",");
-    modem->appendSet(content_type);
-    if (content_type == 6)
-    {
-        modem->appendSet(",");
-        modem->appendSet(custom_content);
-    }
-    if (modem->completeSet(5000) != MODEM_OK)
-        return false;
-
-    uint32_t startMillis = modem->msTick();
-    while ((httpResponeFlag == -1) && (modem->msTick() - startMillis < 60000))
-    {
-        modem->checkURC();
-    }
-    return httpResponeFlag == 1;
 }
 
 bool UBlox::httpRequest(const char *profile, const char *type, const char *url, const char *response, const char *request, const char *content_type, const char *custom_content)

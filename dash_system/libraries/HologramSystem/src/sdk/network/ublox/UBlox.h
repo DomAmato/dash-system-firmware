@@ -178,9 +178,7 @@ public:
     int getICCID(char *id);
     bool isNetworkTimeAvailable();
     bool getNetworkTime(timestamp_tz &ts);
-    bool httpGet(int profile, const char *url, const char * response = "\"resp.ffs\"");
-    bool httpPost(int profile, const char *url, const char * response = "\"resp.ffs\"", const char * request = "\"req.ffs\"", int content_type = 0, const char *custom_content = NULL);
-    bool httpRequest(const char * profile, const char * type, const char *url, const char * response, const char * request, const char * content_type = 0, const char *custom_content = NULL);
+    bool httpRequest(const char * profile, const char * type, const char *url, const char * response, const char * request = NULL, const char * content_type = 0, const char *custom_content = NULL);
 
     bool uhttp(int profile, int opcode, const char *value);
 
