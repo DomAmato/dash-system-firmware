@@ -145,11 +145,11 @@ bool ArduinoCloud::findContent(const char* filename, int* contentLength, int* co
     if(offset == -1) return false;
     if(strcmp(header, "HTTP/1.1 200 OK") != 0) return false;
 
-    offset = findLine("ota", 0, "Content-Length:", header, 80);
+    offset = findLine("\"ota\"", 0, "Content-Length:", header, 80);
     if(offset == -1) return false;
     if(sscanf(header, "Content-Length: %d", contentLength) != 1) return false;
 
-    offset = findBlankLine("ota", offset, header, 80);
+    offset = findBlankLine("\"ota\"", offset, header, 80);
     if(offset == -1) return false;
     *contentOffset = offset;
 
@@ -160,11 +160,11 @@ bool ArduinoCloud::programOTA(const char* filename) {
     //find start of content and content length
     int contentLength = 0;
     int contentOffset = 0;
-    if(findContent("ota", &contentLength, &contentOffset)) {
+    if(findContent("\"ota\"", &contentLength, &contentOffset)) {
         //do OTA update
         System.onLED();
         OTA.init(EZPORT);
-        UBloxStream ustream(ublox, "ota", contentOffset, contentLength);
+        UBloxStream ustream(ublox, "\"ota\"", contentOffset, contentLength);
         OTA.updateUserApplication(ustream, contentLength);
         EZPORT.end();
         System.offLED();

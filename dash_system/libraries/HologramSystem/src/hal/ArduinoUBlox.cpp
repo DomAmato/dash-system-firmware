@@ -23,7 +23,7 @@
 #include "ArduinoUBlox.h"
 
 void ArduinoUBlox::begin(NetworkEventHandler &h, Stream &modem_uart, Stream *uart) {
-    modem.begin(modem_uart, *this);
+    modem.begin(modem_uart, *this); //&Serial for debug
     this->uart = uart;
     init(h, modem);
 }

@@ -75,10 +75,18 @@ typedef struct
     int listener;
 } socket_accept_event;
 
+typedef struct
+{
+    int profile;
+    int type;
+    bool success;
+} http_response;
+
 typedef union {
     int sms_index;
     socket_accept_event accept;
     location_event location;
+    http_response response;
 } ublox_event_content;
 
 typedef enum
@@ -92,6 +100,7 @@ typedef enum
     UBLOX_EVENT_NETWORK_REGISTERED = 6,   //NULL
     UBLOX_EVENT_NETWORK_UNREGISTERED = 7, //NULL
     UBLOX_EVENT_CONNECTED = 8,            //NULL
+    UBLOX_EVENT_HTTP_RESPONSE = 9,        //http_response
 } ublox_event_id;
 
 typedef enum
@@ -171,6 +180,7 @@ public:
     bool getNetworkTime(timestamp_tz &ts);
     bool httpGet(int profile, const char *url, const char * response = "\"resp.ffs\"");
     bool httpPost(int profile, const char *url, const char * response = "\"resp.ffs\"", const char * request = "\"req.ffs\"", int content_type = 0, const char *custom_content = NULL);
+    bool httpRequest(const char * profile, const char * type, const char *url, const char * response, const char * request, const char * content_type = 0, const char *custom_content = NULL);
 
     bool uhttp(int profile, int opcode, const char *value);
 

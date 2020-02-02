@@ -213,7 +213,7 @@ void UBlox::pollEvents()
         }
         break;
     case UBLOX_STATE_CONNECTED:
-        modem->command("", 100);
+        //modem->command("", 100);
         break;
     }
     if (isInitialized())
@@ -716,11 +716,12 @@ void UBlox::onURC(const char *urc)
     }
     else if (startswith(urc, "+UUHTTPCR: "))
     {
+        http_response resp;
         int flag;
-        if (sscanf(urc, "+UUHTTPCR: 0,%*d,%d", &flag) == 1)
-        {
-            httpResponeFlag = flag;
-        }
+        sscanf(urc, "+UUHTTPCR: %d,%d,%d", &resp.profile, &resp.type, &flag);
+        httpResponeFlag = flag;
+        resp.success = (flag == 1);
+        eventHandler->onNetworkEvent(UBLOX_EVENT_HTTP_RESPONSE, &resp);
     }
     else if (startswith(urc, "+CTZV: "))
     {
@@ -1130,14 +1131,15 @@ bool UBlox::uhttp(int profile, int opcode, const char *value)
     modem->appendSet(profile);
     modem->appendSet(',');
     modem->appendSet(opcode);
-    if(value != NULL && strcmp(value, "") != 0){
+    if (value != NULL && strcmp(value, "") != 0)
+    {
         modem->appendSet(",");
         modem->appendSet(value);
     }
     return (modem->completeSet(500, 10) == MODEM_OK);
 }
 
-bool UBlox::httpGet(int profile, const char *url, const char * response)
+bool UBlox::httpGet(int profile, const char *url, const char *response)
 {
     if (!isConnected())
         return false;
@@ -1167,17 +1169,13 @@ int UBlox::filesize(const char *filename)
         return -1;
     int filesize = -1;
     modem->startSet("+ULSTFILE");
-    modem->appendSet("2,\"");
+    modem->appendSet("2,");
     modem->appendSet(filename);
-    modem->appendSet('"');
     if (modem->completeSet(1000) == MODEM_OK)
     {
-        if (sscanf(modem->lastResponse(), "+ULSTFILE: %d", &filesize) == 1)
-        {
-            return filesize;
-        }
+        sscanf(modem->lastResponse(), "+ULSTFILE: %d", &filesize);
     }
-    return -1;
+    return filesize;
 }
 
 int UBlox::readFile(const char *filename, int offset, void *buffer, int size)
@@ -1185,65 +1183,69 @@ int UBlox::readFile(const char *filename, int offset, void *buffer, int size)
     //AT+URDBLOCK="<filename>",<offset>,<size>
     //only read at-most 32 bytes at a time from ublox
     if (!isReady())
-        return 0;
+        return -1;
     if (offset < 0)
-        return 0;
+        return -2;
     int totalread = 0;
     int filenamelen = strlen(filename);
     char *pbuffer = (char *)buffer;
     char scratch[filenamelen < 12 ? 12 : filenamelen + 1];
 
-    while (size)
+    while (size > 0)
     {
         int toread = size;
         if (toread > 32)
+        {
             toread = 32;
+        }
 
         modem->startSet("+URDBLOCK");
-        modem->appendSet('"');
         modem->appendSet(filename);
-        modem->appendSet("\",");
+        modem->appendSet(",");
         modem->appendSet(offset + totalread);
         modem->appendSet(',');
         modem->appendSet(toread);
         if (modem->intermediateSet('+', 10000) == MODEM_OK)
         {
             //+URDBLOCK: "<filename>",<numread>,"<content>"
-            modem->rawRead(11, scratch);
-            if (strcmp(scratch, "URDBLOCK: \"") != 0)
-                break;
+            modem->rawRead(10, scratch);
+            if (strcmp(scratch, "URDBLOCK: ") != 0)
+                return -3;
 
             modem->rawRead(filenamelen, scratch);
             if (strcmp(scratch, filename) != 0)
-                break;
+                return -4;
 
-            modem->rawRead(2, scratch);
-            if (strcmp(scratch, "\",") != 0)
-                break;
+            modem->rawRead(1, scratch);
+            if (strcmp(scratch, ",") != 0)
+                return -5;
 
             modem->rawRead(2, scratch);
             int numread = 0;
             if (scratch[0] < '0' || scratch[0] > '9')
-                break;
+                return -6;
+
             numread = scratch[0] - '0';
             if (scratch[1] != ',')
             {
                 if (scratch[1] < '0' || scratch[1] > '9')
-                    break;
+                    return -7;
+
                 numread *= 10;
                 numread += scratch[1] - '0';
                 modem->rawRead(1, scratch);
                 if (scratch[0] != ',')
-                    break;
+                    return -8;
             }
 
             modem->rawRead(1, scratch);
             if (scratch[0] != '"')
-                break;
+                return -9;
+
             modem->rawRead(numread, pbuffer);
             modem->rawRead(1, scratch);
             if (scratch[0] != '"')
-                break;
+                return -10;
 
             pbuffer += numread;
             size -= numread;
@@ -1253,7 +1255,7 @@ int UBlox::readFile(const char *filename, int offset, void *buffer, int size)
         }
         else
         {
-            break;
+            return -11;
         }
     }
     return totalread;
@@ -1335,7 +1337,7 @@ bool UBlox::hasOKResult()
     return modem->checkResult() == MODEM_OK;
 }
 
-bool UBlox::httpPost(int profile, const char *url, const char * response, const char * request, int content_type, const char *custom_content)
+bool UBlox::httpPost(int profile, const char *url, const char *response, const char *request, int content_type, const char *custom_content)
 {
     if (!isConnected())
         return false;
@@ -1359,6 +1361,51 @@ bool UBlox::httpPost(int profile, const char *url, const char * response, const 
     }
     if (modem->completeSet(5000) != MODEM_OK)
         return false;
+
+    uint32_t startMillis = modem->msTick();
+    while ((httpResponeFlag == -1) && (modem->msTick() - startMillis < 60000))
+    {
+        modem->checkURC();
+    }
+    return httpResponeFlag == 1;
+}
+
+bool UBlox::httpRequest(const char *profile, const char *type, const char *url, const char *response, const char *request, const char *content_type, const char *custom_content)
+{
+    if (!isConnected())
+        return false;
+
+    httpResponeFlag = -1;
+    // When parsing the input quotations are passed in as part of the string
+    modem->startSet("+UHTTPC");
+    modem->appendSet(profile);
+    modem->appendSet(",");
+    modem->appendSet(type);
+    modem->appendSet(",");
+    modem->appendSet(url);
+    modem->appendSet(",");
+    modem->appendSet(response);
+    if (strcmp(type, "4") == 0 || strcmp(type, "5") == 0)
+    {
+        modem->appendSet(",");
+        modem->appendSet(request);
+        if (content_type == NULL)
+        {
+            return false;
+        }
+        modem->appendSet(",");
+        modem->appendSet(content_type);
+        if (strcmp(content_type, "6") == 0)
+        {
+            modem->appendSet(",");
+            modem->appendSet(custom_content);
+        }
+    }
+
+    if (modem->completeSet(5000) != MODEM_OK)
+    {
+        return false;
+    }
 
     uint32_t startMillis = modem->msTick();
     while ((httpResponeFlag == -1) && (modem->msTick() - startMillis < 60000))

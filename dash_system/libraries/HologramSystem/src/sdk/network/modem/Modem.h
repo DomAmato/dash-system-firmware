@@ -121,7 +121,7 @@ protected:
 
     URCReceiver *receiver;
     char cmdbuffer[32];
-    char valbuffer[48];
+    char valbuffer[128];
     char respbuffer[512];
     char okbuffer[512];
     char *valoffset;

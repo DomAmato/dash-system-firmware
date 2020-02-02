@@ -166,6 +166,14 @@ void handle_event(ublox_event_id id, const ublox_event_content *content)
   case UBLOX_EVENT_FORCED_DISCONNECT:
     Serial.println("+HHCONNECTED: 0");
     break;
+  case UBLOX_EVENT_HTTP_RESPONSE:
+    Serial.print("+UUHTTPCR: ");
+    Serial.print(content->response.profile);
+    Serial.print(",");
+    Serial.print(content->response.type);
+    Serial.print(",");
+    Serial.println(content->response.success);
+    break;
   case UBLOX_EVENT_NETWORK_UNREGISTERED:
     Serial.println("+HHREGISTERED: 0");
     break;
@@ -472,8 +480,58 @@ void processSet(const char *cmd, const char *set)
       {
         OK();
         return;
-      } 
-    } 
+      }
+    }
+    ERROR();
+  }
+  else if (strcmp(cmd, "+URDFILE") == 0)
+  {
+    int filesize = ublox.filesize(set);
+    if (filesize <= 0)
+    {
+      Serial.println("File doesn't exist");
+      ERROR();
+    }
+
+    int offset = 0;
+    char buffer[128];
+
+    do
+    {
+      offset += ublox.readFile(set, offset, buffer, 128);
+      Serial.print(buffer);
+    } while (offset > 0 && offset < filesize);
+
+    if (offset < filesize)
+    {
+      ERROR();
+      return;
+    }
+
+    OK();
+  }
+  else if (strcmp(cmd, "+UHTTPC") == 0)
+  {
+    uint8_t index = 0;
+    char *vals[7];
+    char str[512];
+    strcpy(str, set);
+    char *ptr = strtok(str, ",");
+    vals[index++] = ptr;
+    while (ptr != NULL && index < 7)
+    {
+      ptr = strtok(NULL, ",");
+      vals[index++] = ptr;
+    }
+    Serial.print(cmd);
+    Serial.print(": ");
+    Serial.println(set);
+
+    if (ublox.httpRequest(vals[0], vals[1], vals[2], vals[3], vals[4], vals[5], vals[6]))
+    {
+      OK();
+      return;
+    }
     ERROR();
   }
   else if (strcmp(cmd, "+HSYS") == 0)
